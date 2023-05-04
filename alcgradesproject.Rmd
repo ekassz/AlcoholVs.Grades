@@ -1,0 +1,323 @@
+---
+title: "STAT 240 Alcohol Consumption and Grades Correlation Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(tidyverse)
+
+
+student_data = read.csv("/Users/wangxuexuan/Documents/stat240/data/student-mat.csv")
+
+```
+
+## Group Members
+
+Yash Gupta, Emili Robles, Xuexuan Wang, Yuqi Zhou
+
+## Introduction
+
+The influence of alcohol intake on academic performance is a hot issue since it has potential ramifications for secondary school pupils' well-being and future chances. Specifically, it can impair cognitive function, memory, and learning, leading to poor academic performance and attendance. It can also disrupt sleep patterns, causing fatigue and difficulty concentrating during class. Additionally, alcohol use can lead to poor decision-making, resulting in skipping class or neglecting school work. In that case, understanding the association between alcohol consumption and academic success is critical for creating effective preventative efforts and supporting healthy lifestyle choices as teenagers traverse the complicated landscape of their educational journey.
+
+Our study aims to investigate the relationship between alcohol intake and student grades, emphasizing both workday and weekend consumption trends. We will explore crucial variables such as age, study time, weekend and weekday alcohol use, and school absenteeism using a large dataset gathered by academics at the University of Camerino and the University of Minho and published and processed by UC Irvine's Machine Learning department. We intend to gain a thorough picture of the influence of alcohol usage on students' academic performance over three grading periods by taking these aspects into account. We will also study other factors, such as absences and studytime, which can also indirectly affect students' grades.
+
+Our study intends to give vital information to policymakers, educators, and families in their attempts to address this issue by investigating the association between alcohol intake and academic performance among secondary school adolescents. We believe that by putting light on these intricate relationships, we might pave the path for targeted treatments and support systems that enable children to excel academically while leading healthy, satisfying lives. Our ultimate objective is to offer useful data for the creation of customized preventive programs that cater to the requirements of students, lowering alcohol intake and related hazards.
+
+## Background
+
+The data was collected by researchers at the University of Camerino and the University of Minho, but published and processed by UC Irvine’s Machine learning department. The data was obtained in a survey of students' math and Portuguese language courses in secondary school. However, to further standardize the data, we are just using the dataset that considers math courses to remove any extraneous factors that could be associated with language classes.
+The key variables in the data set that we will be examining are:
+
+1. Age - the student’s age, to help us get the most appropriate group (who consume most alcohol) to study.
+2. Study time - how much time they study for the course, which can also reflect the participation rate of study.
+3. Absences - the number of school absences, which can also reflect the participation rate of study.
+4. Walc (weekend alcohol consumption) - the rate at how much students consume alcohol during the weekend, (very low to very high).
+5. Dalc - (workday alcohol consumption) - the rate at how much students consume alcohol during the work days, (very low to very high). 
+6. Alcohol_consumption - (whole week alcohol consumption) - the rate at how much students consume alcohol during the whole week, (very low to exceptional high). 
+7. G1 (first period grade) - the grade given for the first grading period (numeric: from 0 to 20)
+8. G2 (second period grade) - the grade given for the second grading period (numeric from 0 to 20)
+9. G3 (third period grade) - the grade given for the second grading period (numeric from 0 to 20)
+
+The source of the data can be found at: UCI Machine Learning Repository. (n.d.). Student Alcohol Consumption [Data set]. Kaggle. https://www.kaggle.com/uciml/student-alcohol-consumption
+
+To better comprehend the question of interest, it is important to understand the key variables and the other factors in our data set that might influence the grades of students besides the alcohol consumption. Age will be used to compare year levels to distinguish between grades. Study time will be used to see how alcohol is truly changing study habits and causing changes in grades.Absences will be used to reflect the differences of students’ participation in study based on different alcohol consumption. Then, there are two key variables in this project, which is alcohol consumption, represented by Walc and Dalc, and the average grades. Walc and Dalc will be used to measure how much alcohol students are consuming. The average of three grading periods (G1, G2, and G3) will be used to examine the changes that alcohol consumption has to grades, as it is one of our only data points for grades. 
+
+In this report, we will first examine the various factors that might influence the grades of students besides the alcohol consumption, including sex, age and so on, and then control those factors later when we interpret the correlation between alcohol consumption and grades to make the results more accurate. And then we will make a hypothesis testing and confidence interval to check if there is any relationship between alcohol consumption and students’ grades when holding other factors. After getting the result, we will continue to explore a more specific relationship between those two variables. We will then make a linear regression test between average grades and alcohol consumption, and a linear regression model to reflect the relationship between 2 variables. Even though both the testing and model will show us a negative correlation between alcohol consumption, the slope is too small to convince this negative relationship. In that case, we eliminate the affecting factors, such as sex, age, absences, study time and so on, and get the mean of the average grades( (G1 + G2 +G3) / 3) to make the correlation more clear to check. Eventually, we get a strong negative correlation between grades and alcohol consumption, which proves our results that when the level of alcohol consumption increases, the grades of students will decrease. In the end, we interpret the influence of alcohol consumption on two more factors, which are study time and absences. Those two factors may influence students’ grades negatively, meaning that alcohol consumption can also indirectly affect students’ grades.
+
+
+## Analysis
+```{r, include=FALSE}
+alc = student_data%>%
+  drop_na()%>%
+  group_by(age,sex)%>%
+  filter(age < 21)%>%
+  summarize(walc = Walc,
+            dalc = Dalc,
+            grade_avg = (G1 + G2 + G3)/3 )
+
+```
+
+```{r, echo=FALSE}
+
+
+ggplot(alc, aes(x = age, y = walc, fill = sex))+
+  geom_col(position = position_dodge())+
+  xlim(c(14,21))+
+  xlab("Age Group")+
+  ylab("Alcohol Consumption")+
+  ggtitle("Alcohol Consumption Rates during the Weekend in Age and Sex of Students")+
+  theme_bw()
+
+ggplot(alc, aes(x = age, y = dalc, fill = sex))+
+  geom_col(position = position_dodge())+
+  xlim(c(14,21))+
+  xlab("Age Group")+
+  ylab("Alcohol Consumption")+
+  ggtitle("Alcohol Consumption Rates during Workday in Age and Sex of Students")+
+  theme_bw()
+```
+
+The above two pictures compare the alcohol consumption of students of different ages and genders by gender and age group. It can be seen from the picture that younger students (under the age of eighteen) actually consume more alcohol, and boys generally consume more alcohol than girls. There is no significant difference in such trends between weekends and weeks. Those results tell us that the sex and age have an influence on students’ grades, when we examine the correlation between grades and alcohol consumption. In that case, when we make testing later, we will control other factors to make the results more accurate.
+
+```{r, echo=FALSE}
+temp = student_data %>%
+  mutate(avg_grade = (G1 + G2 + G3) / 3,
+         Walc = as.factor(Walc)) %>%
+  select(avg_grade, Walc, sex, age, studytime, absences) %>%
+  filter(Walc %in% c(1, 5) & absences == 0 & sex == "M") %>%
+  select(Walc, avg_grade) 
+
+t.test(avg_grade ~ Walc, data = temp)
+
+```
+
+Above is the result of our hypothesis testing, in which the null hypothesis is that different levels of alcohol consumption have no influence on students’ grades. After controlling the sex to male and study participation rate, we compare the average grades of 2 groups of students who drank at weekend at different levels (when Walc = 1 / Walc = 5). The result shows that the p-value for the two-sample t-test is 0.04889, which is smaller than the significance level of 0.05. This suggests that we do have sufficient evidence to reject the null hypothesis of identical mean grades for students with different alcohol consumption levels. Besides, the 95% confidence interval for the difference in means between the two periods is [0.02771777, 8.98677498]. Since this interval doesn’t include zero, it provides further support for the conclusion that we do have sufficient evidence to reject the null hypothesis of equal grades. Therefore, we can conclude that different consumption of alcohol may make a difference on students' grades, when other factors hold.
+
+```{r, echo=FALSE}
+
+avg_grades = student_data %>%
+  mutate(avg.grade = rowMeans(cbind(student_data$G1,student_data$G2,student_data$G3)),
+         Walc = as.factor(Walc)) %>%
+  select(avg.grade, Walc, sex, age, studytime, absences)%>%
+  filter(Walc %in% c(1,5) & absences == 0 & sex == "M") %>%
+  select(Walc, avg.grade) 
+
+
+model1 = lm(avg.grade~Walc, data = avg_grades)
+summary(model1)
+
+mse <- mean(resid(model1)^2)
+cat("Mean squared error: ", mse)
+```
+
+The linear regression test between average grades and alcohol consumption (measured by Walc) suggests that there is a weak negative correlation between the two variables. The coefficient for Walc is negative (-1.1268) and statistically significant at the 0.1 level, which means that higher alcohol consumption is associated with lower average grades. However, the R-squared value is low (0.1132), indicating that only a small portion of the variation in average grades can be explained by alcohol consumption. The p-value for the F-statistic is greater than 0.05, indicating that the overall model is not statistically significant. The mean squared error is 23.34817, which measures the average squared difference between the predicted and actual values of the response variable, and can be used to assess the accuracy of the model.
+
+```{r, echo=FALSE}
+All = student_data %>%
+  mutate(avg_grade = (as.numeric(G1) + as.numeric(G2) + as.numeric(G3)) / 3,
+         Alcohol_consumption = as.factor(Dalc + Walc)) %>%
+  group_by(Alcohol_consumption) %>%
+  ggplot(aes(x = as.factor(Alcohol_consumption), y = avg_grade, group = 1)) +
+  geom_point(aes(color = Alcohol_consumption)) +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Alcohol Consumption and Grades",
+       x = "Alcohol Consumption",
+       y = "Average of G1, G2, and G3 Grades",
+       color = "Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Below Average", "Average", "Above Average", "Moderate High", "High", "Very High", "Exceptional High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Below Average", "Average", "Above Average", "Moderate High", "High", "Very High", "Exceptional High")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+All
+```
+
+```{r, echo=FALSE}
+All = student_data %>%
+  mutate(avg_grade = (as.numeric(G1) + as.numeric(G2) + as.numeric(G3)) / 3,
+         Alcohol_consumption = as.factor(Dalc + Walc)) %>%
+  filter(absences == 0 & sex == "M") %>%
+  group_by(Alcohol_consumption) %>%
+  ggplot(aes(x = Alcohol_consumption, y = avg_grade, group = 1)) +
+  geom_point(aes(color = Alcohol_consumption)) + 
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Alcohol Consumption and Grades",
+       x = "Alcohol Consumption",
+       y = "Average of G1, G2, and G3 Grades",
+       color = "Alcohol Consumption") +
+scale_x_discrete(labels = c("Very Low", "Low", "Below Average", "Average", "Above Average", "High", "Very High", "Exceptional High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Below Average", "Average", "Above Average", "High", "Very High", "Exceptional High")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+
+All
+```
+
+
+The graphs visualize the linear regression model. The x axis combines the Walc and Dalc together to check only the influence of alcohol consumption, ignoring the impacts of day type. The first graph is without filtering and the second graph with filtering. The factors being filtered in the second graph includes absences, sex and so on. The filtering is for reducing the potential impacts on grades caused by participation rate, differences of habits caused by sex, and so on, which make us focus more on just alcohol consumption and grades. However, due to too much points, the trend cannot be detected easily. With filtering, there is a slight negative relationship showing. In that case, the second graph provides a support for our claim that increasing alcohol consumption may cause decrease in students’ grades with other factors holding. 
+
+To reduce the variances of data and get a more clear trend with a smooth lm line, we calculate the mean of average grades. And we also separate the above graph into two, with Walc and Dalc becoming the new x axis. This can help us interpret the different impacts of weekend and workday alcohol consumption. The following three pictures reflect the impact of alcohol consumption on performance by comparing the average results of the three stages under different alcohol consumption levels. A comparison of the first two images tells us that alcohol consumption on weekends tends to have a greater impact on student performance than alcohol consumption during the week. The last graph combines the data of the week and the weekend to reflect the relationship between alcohol consumption and grades, that is, the more alcohol consumed, the more grades will decrease, which is reflected by a negative slope. Therefore, the last graph provides the best support for our claim that increasing alcohol consumption may cause decrease in students’ grades with other factors holding. 
+
+
+```{r, echo=FALSE}
+
+Dalc = student_data %>%
+  mutate(avg_grade = (as.numeric(G1) + as.numeric(G2) + as.numeric(G3)) / 3,
+         Dalc = as.factor(Dalc)) %>%
+  group_by(Dalc) %>%
+  summarise(avg_grade = mean(avg_grade)) %>%
+  ggplot(aes(x = as.factor(Dalc), y = avg_grade, group = 1)) +
+  geom_point(aes(color = Dalc)) +
+  geom_line(aes(group = 1), color = "red") + # add a line connecting the points
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Alcohol Consumption and Grades",
+       x = "Workday Alcohol Consumption",
+       y = "Average of G1, G2, and G3 Grades",
+       color = "Workday Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  theme_bw()
+
+
+Walc = student_data %>%
+  mutate(avg_grade = (as.numeric(G1) + as.numeric(G2) + as.numeric(G3))/3,
+         Walc = as.factor(Walc)) %>% # calculate average grade
+  group_by(Walc) %>%
+  summarise(avg_grade = mean(avg_grade)) %>%
+  ggplot(aes(x = as.factor(Walc), y = avg_grade, group = 1)) + # x = Walc
+  geom_line(color = "red") + # add line
+  geom_point(aes(color = Walc)) + # color points by Walc
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Alcohol Consumption and Grades",
+       x = "Weekend Alcohol Consumption",
+       y = "Average of G1, G2, and G3 Grades",
+       color = "Weekend Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  theme_bw()
+
+Dalc
+Walc
+
+
+```
+
+The graphs above reflect the impact of alcohol consumption on performance by comparing the average results of the three stages under different alcohol consumption levels. A comparison of the first two images tells us that alcohol consumption on weekends tends to have a greater impact on student performance than alcohol consumption during the week. However, both indicate a negative slope, showing that the more alcohol consumed, the more grades will decrease.
+
+```{r, echo=FALSE}
+# ST = student_data %>%
+#   mutate(Alcohol_consumption = as.factor(Dalc + Walc)) %>%
+#   group_by(Alcohol_consumption) %>%
+#   summarise(studytime = mean(studytime)) %>%
+#   ggplot(aes(x = as.factor(Alcohol_consumption), y = studytime, group = 1)) +
+#   geom_point(aes(color = Alcohol_consumption)) +
+#   geom_line(color = "red") + # add a line connecting the points
+#   geom_smooth(se = FALSE, method = "lm") +
+#   labs(title = "Relationship between Alcohol Consumption and Studytime",
+#        x = "Alcohol Consumption",
+#        y = "Average Studytime",
+#        color = "Alcohol Consumption") +
+#   theme_bw()
+
+ST_dalc = student_data %>%
+  mutate(Alcohol_consumption = as.factor(Dalc)) %>%
+  group_by(Alcohol_consumption) %>%
+  summarise(studytime = mean(studytime)) %>%
+  ggplot(aes(x = as.factor(Alcohol_consumption), y = studytime, group = 1)) +
+  geom_point(aes(color = Alcohol_consumption)) +
+  geom_line(color = "red") + # add a line connecting the points
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Workday Alcohol Consumption and Studytime",
+       x = "Workday Alcohol Consumption",
+       y = "Average Studytime",
+       color = "Workday Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  theme_bw()
+
+
+ST_walc = student_data %>%
+  mutate(Alcohol_consumption = as.factor(Walc)) %>%
+  group_by(Alcohol_consumption) %>%
+  summarise(studytime = mean(studytime)) %>%
+  ggplot(aes(x = as.factor(Alcohol_consumption), y = studytime, group = 1)) +
+  geom_point(aes(color = Alcohol_consumption)) +
+  geom_line(color = "red") + # add a line connecting the points
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Weekend Alcohol Consumption and Studytime",
+       x = "Weekend Alcohol Consumption",
+       y = "Average Studytime",
+       color = "Weekend Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  theme_bw()
+
+ST_dalc
+ST_walc
+
+ST_dalc = student_data %>%
+  mutate(Alcohol_consumption = as.factor(Dalc)) %>%
+  group_by(Alcohol_consumption) %>%
+  summarise(absences = mean(absences)) %>%
+  ggplot(aes(x = as.factor(Alcohol_consumption), y = absences, group = 1)) +
+  geom_point(aes(color = Alcohol_consumption)) +
+  geom_line(aes(group = 1), color = "red") + # add a line connecting the points
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Workday Alcohol Consumption and Absences",
+       x = "Workday Alcohol Consumption",
+       y = "Average Absences Rate",
+       color = "Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  theme_bw()
+
+ST_walc = student_data %>%
+  mutate(Alcohol_consumption = as.factor(Dalc)) %>%
+  group_by(Alcohol_consumption) %>%
+  summarise(absences = mean(absences)) %>%
+  ggplot(aes(x = as.factor(Alcohol_consumption), y = absences, group = 1)) +
+  geom_point(aes(color = Alcohol_consumption)) +
+  geom_line(aes(group = 1), color = "red") + # add a line connecting the points
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Relationship between Weekend Alcohol Consumption and Absences",
+       x = "Weekend Alcohol Consumption",
+       y = "Average Absences Rate",
+       color = "Weekend Alcohol Consumption") +
+  scale_x_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  scale_color_discrete(labels = c("Very Low", "Low", "Moderate", "High", "Very High")) +
+  theme_bw()
+
+ST_dalc
+ST_walc
+
+```
+
+The graphs above respectively compare the mean study time and the amount of alcohol consumption with both weekday and weekend alchol consumption represented, and the mean absence rate and the amount of alcohol consumption with both weekday and weekend alchol consumption represented to obtain the relationship between student learning participation and alcohol consumption. The negative slope of the first two graphs indicate that the alcohol consumption is inversely proportional to the mean study time, while the positive slope of the second two graphs shows that the mean absence rate is directly proportional to the alcohol consumption. Both suggest that the more alcohol consumed, the lower the student participation in learning.
+
+## Discussion
+
+We predicted that there'd be a negative correlation between Alcohol Consumption and Grades. We started off by showing a linear regression with all the data that was given to us which included 30 variables like their family size, activities, failed classes etc. There was clearly a lot of information to base our hypothesis off of but because we wanted to be as specific as possible, we decided to only focus on the average of their grades, study time, absences and how much they drink in the weekend and week days. By performing a linear regression test first and getting (-1.1268), we already knew that we were heading into a weak negative correlation between our variables. Which brought us into wanting to compare Alcohol Consumption level (very low - very high) vs. Grades through the Weekend and Workdays. From this we discovered that there was a stronger correlation in the weekends as students who were placed in "very high" got an average grade of around 10.15 being one of the lowest grades.To prove our hypothesis even further, we brought in our 2 last variables of Study Time and Absences to compare to Alcohol Consumption levels. Both of these scatter plots were a success into a proving a negative correlation as students in the "very high" level had an average study time of around 1.59 (lowest) and their absence average was estimated at 1.71 (lowest).
+
+However, some shortcomings were: the low R-squared value of 0.1132 indicates that only a small portion of the variation in average grades can be explained by alcohol consumption. Our study focused solely on math classes and self-reported alcohol consumption, which may not fully capture the true relationship between alcohol consumption and academic performance across different subjects.
+
+Collecting more comprehensive data on potential confounding variables and employing different research methods, such as experimental designs, would help refine our understanding and strengthen the validity of our conclusions. This could then bring us to develop even more questions other than asking if alcohol affects grades, it could lead us into asking if there are any other variables that affect a student’s grade more than alcohol consumption does. Or also if students who have a strong correlation between alcohol consumption and another variable such as family income could provide a stronger negative correlation with their grades. 
+
+Overall, given the time frame and restrictions, we wanted to again just purely focus on a couple of variables and still were able to head into the direction that the more a student consumes alcohol during the weekend especially, the worse their math grade gets over time.
+
+
+
+
+## Sources
+1. Student Alcohol Consumption. (n.d.). Student Alcohol Consumption | Kaggle. https:///datasets/uciml/student-alcohol-consumption
+2. P. Cortez and A. Silva. Using Data Mining to Predict Secondary School Student Performance. In A. Brito and J. Teixeira Eds., Proceedings of 5th FUture BUsiness TEChnology Conference (FUBUTEC 2008) pp. 5-12, Porto, Portugal, April 2008, EUROSIS, ISBN 978-9077381-39-7. http://www3.dsi.uminho.pt/pcortez/student.pdf
+3. UCI Machine Learning Repository: Data Set. (n.d.). UCI Machine Learning Repository: Data Set. https://archive.ics.uci.edu/ml/datasets/STUDENT+ALCOHOL+CONSUMPTION
+4. Fabio Pagnotta, Hossain Mohammad Amran, Department of Computer Science,University of Camerino
+
+
+
+
+
+
+
